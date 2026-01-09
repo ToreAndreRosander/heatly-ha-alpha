@@ -1,0 +1,24 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Koble til Heatly Cloud",
+        "description": "Skriv inn detaljer for rommet ditt.",
+        "data": {
+          "room_id": "Rom-ID (fra Heatly Dashboard)",
+          "temp_sensor": "Temperatursensor",
+          "heater_switch": "Varmeovn (Bryter)",
+          "outdoor_sensor": "Utendørs sensor (Valgfritt)",
+          "api_url": "API URL"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Kunne ikke koble til API-et",
+      "unknown": "Ukjent feil"
+    },
+    "abort": {
+      "already_configured": "Dette rommet er allerede konfigurert"
+    }
+  }
+}
