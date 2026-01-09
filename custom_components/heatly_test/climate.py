@@ -6,13 +6,14 @@ async def async_setup_entry(hass, entry, async_add_entities):
     """Setter opp termostaten basert på config flow-data."""
     config = entry.data
     # Hent API-klienten fra den nye strukturen
-    api_client = hass.data[DOMAIN][entry.entry_id]["api"]
+    api_client = hass.data[DOMAIN][entry.entry_id]
+
+    # not sure why changed from this:
+    # api_client = hass.data[DOMAIN][entry.entry_id]["api"]
     
-    thermostat = HeatlyThermostat(hass, api_client, config, entry.entry_id)
-    
-    # --- VIKTIG: Registrer selve enheten slik at __init__.py finner den ---
-    hass.data[DOMAIN][entry.entry_id]["entity"] = thermostat
-    
+    thermostat = HeatlyThermostat(hass, api_client, config)
+    # Store thermostat entity reference for __init__.py to use
+    hass.data[DOMAIN]["thermostat_entity"] = thermostat
     async_add_entities([thermostat])
 
 class HeatlyThermostat(ClimateEntity):
@@ -28,6 +29,7 @@ class HeatlyThermostat(ClimateEntity):
         self._attr_name = f"Heatly {config['room_id']}"
         self._attr_unique_id = f"heatly_{config['room_id']}"
         self._attr_hvac_modes = [HVACMode.HEAT, HVACMode.OFF]
+        self._attr_hvac_mode = HVACMode.HEAT
         self._attr_supported_features = ClimateEntityFeature.TARGET_TEMPERATURE
         self._attr_temperature_unit = UnitOfTemperature.CELSIUS
         self._attr_target_temperature = 20.0
