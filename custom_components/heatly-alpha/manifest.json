@@ -3,9 +3,10 @@
   "name": "Heatly Cloud",
   "version": "0.0.1-alpha",
   "documentation": "https://github.com/ToreAndreRosander/heatly-ha-alpha",
-  "dependencies": [],
+  "issue_tracker": "https://github.com/ToreAndreRosander/heatly-ha-alpha/issues",
   "codeowners": ["@Rosander"],
   "config_flow": true,
   "iot_class": "cloud_polling",
-  "requirements": ["aiohttp", "async_timeout"]
+  "requirements": ["aiohttp", "async_timeout"],
+  "dependencies": []
 }

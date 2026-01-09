@@ -2,6 +2,7 @@ import aiohttp
 import async_timeout
 import time
 import logging
+import asyncio
 
 _LOGGER = logging.getLogger(__name__)
 
