@@ -46,10 +46,10 @@ class HeatlyThermostat(ClimateEntity):
         }
         self.async_write_ha_state()
         
+    @property
     def current_temperature(self):
-        """Henter temperatur fra den valgte sensoren."""
         state = self.hass.states.get(self._sensor_id)
-        return float(state.state) if state and state.state not in ["unknown", "unavailable"] else None
+        return float(state.state)
 
     async def async_set_temperature(self, **kwargs):
         """Brukeren endret temperatur manuelt (kan sendes til skyen senere)."""
