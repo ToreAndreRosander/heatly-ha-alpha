@@ -1,77 +1,110 @@
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.event import async_track_time_interval, async_track_state_change_event
-from datetime import timedelta
-from .api_client import HeatlyApiClient
-from .const import (
-    DOMAIN, CONF_ROOM_ID, CONF_TEMP_SENSOR, CONF_HEATER_SWITCH,
-    CONF_OUTDOOR_SENSOR, CONF_API_URL, DEFAULT_API_URL, SCAN_INTERVAL_SECONDS
-)
+from homeassistant.components.climate import ClimateEntity, ClimateEntityFeature, HVACMode
+from homeassistant.const import UnitOfTemperature, ATTR_TEMPERATURE
+from .const import DOMAIN, CONF_TEMP_SENSOR, CONF_HEATER_SWITCH
+import logging
 
-async def async_setup(hass: HomeAssistant, config: dict):
-    """Lar HA sette opp integrasjonen via YAML (påkrevd for at HA skal skjønne at komponenten eksisterer)."""
-    return True
+_LOGGER = logging.getLogger(__name__)
 
-async def async_setup_entry(hass: HomeAssistant, entry):
-    """Setter opp Heatly via GUI."""
-    room_id = entry.data[CONF_ROOM_ID]
-    sensor_id = entry.data[CONF_TEMP_SENSOR]
-    outdoor_sensor_id = entry.data.get(CONF_OUTDOOR_SENSOR)
-    api_url = entry.data.get(CONF_API_URL, DEFAULT_API_URL)
+async def async_setup_entry(hass, entry, async_add_entities):
+    """Setter opp termostaten basert på config flow-data."""
+    config = entry.data
+    entry_id = entry.entry_id
     
-    api_client = HeatlyApiClient(room_id, api_url)
-    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = api_client
+    # Hent API-klienten trygt
+    if DOMAIN not in hass.data or entry_id not in hass.data[DOMAIN]:
+        _LOGGER.error("Heatly: Fant ikke konfigurasjon i hass.data")
+        return
 
-    hass.data.setdefault(DOMAIN, {})
-    hass.data[DOMAIN][entry.entry_id] = {
-        "api": api_client,
-        "entity": None  # Plassholder, climate.py vil fylle ut denne
-    }
-
-    # Function to send sensor data to API
-    async def send_sensor_update():
-        """Send current sensor data to API."""
-        state = hass.states.get(sensor_id)
-        if state and state.state not in ["unknown", "unavailable"]:
-            temp = float(state.state)
-            
-            # Get outdoor temperature if configured
-            outdoor_temp = None
-            if outdoor_sensor_id:
-                outdoor_state = hass.states.get(outdoor_sensor_id)
-                if outdoor_state and outdoor_state.state not in ["unknown", "unavailable"]:
-                    try:
-                        outdoor_temp = float(outdoor_state.state)
-                    except (ValueError, TypeError):
-                        pass
-            
-            # Send data
-            response = await api_client.send_sensor_data(temp, outdoor_temp)
-            
-
-            data_store = hass.data[DOMAIN].get(entry.entry_id)
-            if data_store and data_store["entity"] and response:
-                await data_store["entity"].update_from_response(response)
-
-
-    # Send sensor data immediately on state change
-    async def sensor_changed(event):
-        new_state = event.data.get("new_state")
-        if new_state and new_state.state not in ["unknown", "unavailable"]:
-            await send_sensor_update()
-
-    async_track_state_change_event(hass, [sensor_id], sensor_changed)
+    api_client = hass.data[DOMAIN][entry_id]["api"]
     
-    # Also send sensor data every SCAN_INTERVAL_SECONDS (minimum every minute)
-    async def periodic_update(now):
-        """Send periodic sensor updates."""
-        await send_sensor_update()
+    # Opprett termostaten
+    thermostat = HeatlyThermostat(hass, api_client, config, entry_id)
     
-    async_track_time_interval(
-        hass,
-        periodic_update,
-        timedelta(seconds=SCAN_INTERVAL_SECONDS)
-    )
+    # VIKTIG: Lagre termostaten så __init__.py kan finne den!
+    hass.data[DOMAIN][entry_id]["thermostat"] = thermostat
+    
+    async_add_entities([thermostat])
 
-    await hass.config_entries.async_forward_entry_setups(entry, ["climate"])
-    return True
+class HeatlyThermostat(ClimateEntity):
+    """Representasjon av en Heatly-styrt termostat."""
 
+    def __init__(self, hass, api_client, config, entry_id):
+        self.hass = hass
+        self._api = api_client
+        self._sensor_id = config[CONF_TEMP_SENSOR]
+        self._switch_id = config[CONF_HEATER_SWITCH]
+        self._entry_id = entry_id
+        
+        self._attr_name = f"Heatly {config.get('room_id', 'Unknown')}"
+        self._attr_unique_id = f"heatly_{config.get('room_id', 'unknown')}"
+        self._attr_hvac_modes = [HVACMode.HEAT, HVACMode.OFF]
+        self._attr_supported_features = ClimateEntityFeature.TARGET_TEMPERATURE
+        self._attr_temperature_unit = UnitOfTemperature.CELSIUS
+        self._attr_target_temperature = 20.0
+        self._attr_min_temp = 5.0
+        self._attr_max_temp = 35.0
+        self._attr_hvac_mode = HVACMode.OFF # Standard start-modus
+        self._attr_extra_state_attributes = {}
+
+    @property
+    def extra_state_attributes(self):
+        return self._attr_extra_state_attributes
+
+    async def update_from_response(self, response):
+        """Kalles fra __init__.py når API har svart."""
+        if not response:
+            return
+
+        try:
+            # Oppdater fysisk ovn
+            heater_state = response.get("heater_state", "off")
+            await self._set_heater_state(heater_state)
+            
+            # Oppdater status i HA
+            self._attr_hvac_mode = HVACMode.HEAT if heater_state == "on" else HVACMode.OFF
+            
+            # Lagre data
+            self._attr_extra_state_attributes = {
+                "trajectory": response.get("trajectory", []),
+                "strategy": response.get("strategy", {}),
+                "prediction_age": response.get("prediction_age_seconds", 0)
+            }
+            self.async_write_ha_state()
+        except Exception as e:
+            _LOGGER.error(f"Feil under oppdatering av termostat: {e}")
+
+    @property
+    def current_temperature(self):
+        """Henter temperatur trygt. Dette var årsaken til kræsjet ditt!"""
+        state = self.hass.states.get(self._sensor_id)
+        if state and state.state not in ["unknown", "unavailable", None]:
+            try:
+                return float(state.state)
+            except ValueError:
+                pass
+        return None
+
+    async def async_set_temperature(self, **kwargs):
+        temp = kwargs.get(ATTR_TEMPERATURE)
+        if temp:
+            self._attr_target_temperature = temp
+            self.async_write_ha_state()
+
+    async def async_set_hvac_mode(self, hvac_mode):
+        self._attr_hvac_mode = hvac_mode
+        if hvac_mode == HVACMode.OFF:
+            await self._set_heater_state("off")
+        self.async_write_ha_state()
+
+    async def _set_heater_state(self, state: str):
+        service = "turn_on" if state == "on" else "turn_off"
+        domain = self._switch_id.split(".")[0]
+        try:
+            await self.hass.services.async_call(
+                domain, 
+                service, 
+                {"entity_id": self._switch_id},
+                blocking=False
+            )
+        except Exception as e:
+            _LOGGER.warning(f"Kunne ikke styre ovn {self._switch_id}: {e}")
