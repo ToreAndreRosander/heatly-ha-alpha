@@ -21,6 +21,12 @@ async def async_setup_entry(hass: HomeAssistant, entry):
     api_client = HeatlyApiClient(room_id, api_url)
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = api_client
 
+    hass.data.setdefault(DOMAIN, {})
+    hass.data[DOMAIN][entry.entry_id] = {
+        "api": api_client,
+        "entity": None  # Plassholder, climate.py vil fylle ut denne
+    }
+
     # Function to send sensor data to API
     async def send_sensor_update():
         """Send current sensor data to API."""
@@ -38,12 +44,14 @@ async def async_setup_entry(hass: HomeAssistant, entry):
                     except (ValueError, TypeError):
                         pass
             
+            # Send data
             response = await api_client.send_sensor_data(temp, outdoor_temp)
             
-            # Find thermostat entity and update with response
-            component = hass.data[DOMAIN].get("thermostat_entity")
-            if component and response:
-                await component.update_from_response(response)
+
+            data_store = hass.data[DOMAIN].get(entry.entry_id)
+            if data_store and data_store["entity"] and response:
+                await data_store["entity"].update_from_response(response)
+
 
     # Send sensor data immediately on state change
     async def sensor_changed(event):
