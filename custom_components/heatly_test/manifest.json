@@ -1,5 +1,5 @@
 {
-  "domain": "heatly",
+  "domain": "heatly_test",
   "name": "Heatly Cloud",
   "version": "0.0.1",
   "config_flow": true,
