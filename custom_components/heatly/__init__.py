@@ -7,6 +7,10 @@ from .const import (
     CONF_OUTDOOR_SENSOR, CONF_API_URL, DEFAULT_API_URL, SCAN_INTERVAL_SECONDS
 )
 
+async def async_setup(hass: HomeAssistant, config: dict):
+    """Lar HA sette opp integrasjonen via YAML (påkrevd for at HA skal skjønne at komponenten eksisterer)."""
+    return True
+
 async def async_setup_entry(hass: HomeAssistant, entry):
     """Setter opp Heatly via GUI."""
     room_id = entry.data[CONF_ROOM_ID]
