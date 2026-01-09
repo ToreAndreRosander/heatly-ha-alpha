@@ -1,12 +1,12 @@
 {
   "domain": "heatly",
   "name": "Heatly Cloud",
-  "version": "0.0.1-alpha",
+  "version": "0.0.1",
+  "config_flow": true,
   "documentation": "https://github.com/ToreAndreRosander/heatly-ha-alpha",
   "issue_tracker": "https://github.com/ToreAndreRosander/heatly-ha-alpha/issues",
-  "codeowners": ["@ToreAndreRosander"],
-  "config_flow": true,
-  "iot_class": "cloud_polling",
   "requirements": [],
-  "dependencies": []
+  "dependencies": [],
+  "codeowners": ["@ToreAndreRosander"],
+  "iot_class": "cloud_polling"
 }

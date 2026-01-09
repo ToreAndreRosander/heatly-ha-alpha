@@ -1,4 +1,4 @@
-DOMAIN = "heatly"
+DOMAIN = "heatly_test"
 CONF_ROOM_ID = "room_id"
 CONF_TEMP_SENSOR = "temp_sensor"
 CONF_HEATER_SWITCH = "heater_switch"
