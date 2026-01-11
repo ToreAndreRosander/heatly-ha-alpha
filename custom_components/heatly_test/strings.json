@@ -7,9 +7,11 @@
         "data": {
           "room_id": "Rom-ID (fra Heatly Dashboard)",
           "temp_sensor": "Temperatursensor",
-          "heater_switch": "Varmeovn (Bryter)",
+          "heater_switches": "Varmeovn(er) - Bryter(e)",
           "outdoor_sensor": "Utendørs sensor (Valgfritt)",
-          "api_url": "API URL"
+          "api_url": "API URL",
+          "cold_tolerance": "Kald-toleranse (°C under mål for å slå på)",
+          "hot_tolerance": "Varm-toleranse (°C over mål for å slå av)"
         }
       }
     },
@@ -19,6 +21,19 @@
     },
     "abort": {
       "already_configured": "Dette rommet er allerede konfigurert"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Heatly Innstillinger",
+        "description": "Konfigurer hysterese-parametere for lokal kontroll.",
+        "data": {
+          "cold_tolerance": "Kald-toleranse (°C under mål for å slå på)",
+          "hot_tolerance": "Varm-toleranse (°C over mål for å slå av)",
+          "api_url": "API URL"
+        }
+      }
     }
   }
 }

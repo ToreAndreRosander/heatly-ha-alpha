@@ -3,7 +3,7 @@ from homeassistant.helpers.event import async_track_time_interval, async_track_s
 from datetime import timedelta
 from .api_client import HeatlyApiClient
 from .const import (
-    DOMAIN, CONF_ROOM_ID, CONF_TEMP_SENSOR, CONF_HEATER_SWITCH,
+    DOMAIN, CONF_ROOM_ID, CONF_TEMP_SENSOR, CONF_HEATER_SWITCH, CONF_HEATER_SWITCHES,
     CONF_OUTDOOR_SENSOR, CONF_API_URL, DEFAULT_API_URL, SCAN_INTERVAL_SECONDS
 )
 import logging
@@ -27,12 +27,12 @@ async def async_setup_entry(hass: HomeAssistant, entry):
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = {
         "api": api_client,
-        "thermostat": None # Denne fylles av climate.py senere
+        "thermostat": None  # Denne fylles av climate.py senere
     }
 
-    # 2. Definer funksjonen som sender data til skyen
+    # 2. Definer funksjonen som sender data til skyen og oppdaterer termostat
     async def send_sensor_update():
-        """Send current sensor data to API."""
+        """Send current sensor data to API and update thermostat."""
         state = hass.states.get(sensor_id)
         if state and state.state not in ["unknown", "unavailable"]:
             try:
@@ -49,19 +49,30 @@ async def async_setup_entry(hass: HomeAssistant, entry):
                     except (ValueError, TypeError):
                         pass
             
-            # Send data
-            try:
-                response = await api_client.send_sensor_data(temp, outdoor_temp)
-            except Exception as e:
-                _LOGGER.error(f"Feil mot API: {e}")
-                return
-
-            # Oppdater termostaten med svaret fra skyen
+            # Get thermostat reference
             data_store = hass.data[DOMAIN].get(entry.entry_id)
-            if data_store:
-                thermostat = data_store.get("thermostat")
-                if thermostat and response:
-                    await thermostat.update_from_response(response)
+            if not data_store:
+                return
+            
+            thermostat = data_store.get("thermostat")
+            if not thermostat:
+                return
+            
+            # If in AUTO mode, send to API and get control commands
+            from homeassistant.components.climate import HVACMode
+            if thermostat.hvac_mode == HVACMode.AUTO:
+                try:
+                    response = await api_client.send_sensor_data(temp, outdoor_temp)
+                    if response:
+                        await thermostat.update_from_response(response)
+                    else:
+                        _LOGGER.warning("No response from API - thermostat may switch to failsafe")
+                except Exception as e:
+                    _LOGGER.error(f"API error: {e}")
+            
+            # If in HEAT mode (local control), run local update
+            elif thermostat.hvac_mode == HVACMode.HEAT:
+                await thermostat.async_update()
 
     # 3. Lytt på endringer i temperatur
     async def sensor_changed(event):
