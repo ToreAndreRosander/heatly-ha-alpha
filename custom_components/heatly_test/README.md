@@ -95,7 +95,8 @@ Endringer synkroniseres automatisk til både Python API og WordPress database.
 Hvis du har konfigurert flere varmeovner for samme rom:
 - Alle ovner kontrolleres simultant (slås på/av samtidig)
 - Brukbart for store rom med flere varmeelementer
-- Støtter switches, input_boolean og lights som aktuatorer
+- Støtter switches, input_boolean, lights og **climate entities** (f.eks. Namron WiFi/Tuya termostater) som aktuatorer
+- Climate entities (termostater) settes til HVAC mode "heat" når varme er påkrevet, og "off" når ikke
 
 ### Hysteresis Configuration
 

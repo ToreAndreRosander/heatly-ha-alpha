@@ -282,17 +282,29 @@ class HeatlyThermostat(ClimateEntity, RestoreEntity):
     async def _set_heater_state(self, state: bool):
         """Set heater state for all configured heaters."""
         self._local_heater_state = state
-        service = "turn_on" if state else "turn_off"
         
         for heater_id in self._heater_ids:
             domain = heater_id.split(".")[0]
             try:
-                await self.hass.services.async_call(
-                    domain, 
-                    service, 
-                    {"entity_id": heater_id},
-                    blocking=False
-                )
-                _LOGGER.debug(f"Called {service} on {heater_id}")
+                if domain == "climate":
+                    # Climate entities use set_hvac_mode instead of turn_on/turn_off
+                    hvac_mode = "heat" if state else "off"
+                    await self.hass.services.async_call(
+                        "climate",
+                        "set_hvac_mode",
+                        {"entity_id": heater_id, "hvac_mode": hvac_mode},
+                        blocking=False
+                    )
+                    _LOGGER.debug(f"Set {heater_id} to hvac_mode={hvac_mode}")
+                else:
+                    # Switch, input_boolean, light use turn_on/turn_off
+                    service = "turn_on" if state else "turn_off"
+                    await self.hass.services.async_call(
+                        domain, 
+                        service, 
+                        {"entity_id": heater_id},
+                        blocking=False
+                    )
+                    _LOGGER.debug(f"Called {service} on {heater_id}")
             except Exception as e:
                 _LOGGER.error(f"Failed to control {heater_id}: {e}")

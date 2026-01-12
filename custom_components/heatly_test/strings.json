@@ -7,7 +7,7 @@
         "data": {
           "room_id": "Rom-ID (fra Heatly Dashboard)",
           "temp_sensor": "Temperatursensor",
-          "heater_switches": "Varmeovn(er) - Bryter(e)",
+          "heater_switches": "Varmeovn(er) - Bryter(e)/Termostat(er)",
           "outdoor_sensor": "Utendørs sensor (Valgfritt)",
           "api_url": "API URL",
           "cold_tolerance": "Kald-toleranse (°C under mål for å slå på)",

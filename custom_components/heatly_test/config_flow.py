@@ -37,7 +37,7 @@ class HeatlyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             ),
             vol.Required(CONF_HEATER_SWITCHES): selector.EntitySelector(
                 selector.EntitySelectorConfig(
-                    domain=["switch", "input_boolean", "light"],
+                    domain=["switch", "input_boolean", "light", "climate"],
                     multiple=True
                 )
             ),
