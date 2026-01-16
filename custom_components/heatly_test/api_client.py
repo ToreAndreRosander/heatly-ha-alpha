@@ -82,13 +82,23 @@ class HeatlyApiClient:
 
     async def update_room_schedule(self, schedule_name: str):
         """Update the active schedule for the room."""
+        # Validate input - check for None, empty string, or whitespace-only
+        if not schedule_name or not schedule_name.strip():
+            _LOGGER.error(
+                f"Cannot update schedule for room {self.room_id}: "
+                f"schedule_name is {'None' if schedule_name is None else 'empty or whitespace'}"
+            )
+            return False
+            
         async with aiohttp.ClientSession() as session:
             try:
                 async with async_timeout.timeout(10):
-                    payload = {"active_schedule": schedule_name}
+                    payload = {"active_schedule": schedule_name.strip()}
                     async with session.post(f"{self.url}/schedule", json=payload) as resp:
                         if resp.status == 200:
-                            _LOGGER.info(f"Successfully updated schedule to {schedule_name} for room {self.room_id}")
+                            _LOGGER.info(
+                                f"Successfully updated schedule to '{schedule_name.strip()}' for room {self.room_id}"
+                            )
                             return True
                         elif resp.status == 404:
                             _LOGGER.error(
