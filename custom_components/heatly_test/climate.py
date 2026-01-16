@@ -77,6 +77,7 @@ class HeatlyThermostat(ClimateEntity, RestoreEntity):
         self._api_available = True
         self._last_api_success = None
         self._last_switch_time = 0  # Prevent rapid switching
+        self._last_commanded_state = None  # Track last command sent to heaters
 
     async def async_added_to_hass(self):
         """Restore state when entity is added to hass."""
@@ -280,8 +281,14 @@ class HeatlyThermostat(ClimateEntity, RestoreEntity):
         self.async_write_ha_state()
 
     async def _set_heater_state(self, state: bool):
-        """Set heater state for all configured heaters."""
+        """Set heater state for all configured heaters. Only sends commands if state changes."""
+        # Check if state actually changed before sending commands
+        if self._last_commanded_state == state:
+            _LOGGER.debug(f"Heater state unchanged ({state}), skipping command to avoid unnecessary calls")
+            return
+        
         self._local_heater_state = state
+        self._last_commanded_state = state
         
         for heater_id in self._heater_ids:
             domain = heater_id.split(".")[0]
@@ -295,7 +302,7 @@ class HeatlyThermostat(ClimateEntity, RestoreEntity):
                         {"entity_id": heater_id, "hvac_mode": hvac_mode},
                         blocking=False
                     )
-                    _LOGGER.debug(f"Set {heater_id} to hvac_mode={hvac_mode}")
+                    _LOGGER.info(f"Set {heater_id} to hvac_mode={hvac_mode}")
                 else:
                     # Switch, input_boolean, light use turn_on/turn_off
                     service = "turn_on" if state else "turn_off"
@@ -305,6 +312,6 @@ class HeatlyThermostat(ClimateEntity, RestoreEntity):
                         {"entity_id": heater_id},
                         blocking=False
                     )
-                    _LOGGER.debug(f"Called {service} on {heater_id}")
+                    _LOGGER.info(f"Called {service} on {heater_id}")
             except Exception as e:
                 _LOGGER.error(f"Failed to control {heater_id}: {e}")

@@ -30,8 +30,18 @@ class HeatlyApiClient:
                     async with session.post(f"{self.url}/sensor", json=payload) as resp:
                         if resp.status == 200:
                             return await resp.json()
+                        elif resp.status == 404:
+                            _LOGGER.error(
+                                f"Room '{self.room_id}' not found in API. "
+                                f"Please ensure room exists in heatly-api database. "
+                                f"URL: {self.url}/sensor"
+                            )
+                            return None
                         else:
-                            _LOGGER.warning(f"API returned status {resp.status}")
+                            _LOGGER.warning(
+                                f"API returned status {resp.status} for room '{self.room_id}'. "
+                                f"URL: {self.url}/sensor"
+                            )
                             return None
             except asyncio.TimeoutError:
                 _LOGGER.error(f"API timeout for room {self.room_id}")
@@ -78,14 +88,24 @@ class HeatlyApiClient:
                     payload = {"active_schedule": schedule_name}
                     async with session.post(f"{self.url}/schedule", json=payload) as resp:
                         if resp.status == 200:
-                            _LOGGER.info(f"Successfully updated schedule to {schedule_name}")
+                            _LOGGER.info(f"Successfully updated schedule to {schedule_name} for room {self.room_id}")
                             return True
+                        elif resp.status == 404:
+                            _LOGGER.error(
+                                f"Room '{self.room_id}' not found when updating schedule. "
+                                f"Please ensure room exists in heatly-api database. "
+                                f"URL: {self.url}/schedule"
+                            )
+                            return False
                         else:
-                            _LOGGER.warning(f"Failed to update schedule: status {resp.status}")
+                            _LOGGER.warning(
+                                f"Failed to update schedule for room '{self.room_id}': status {resp.status}. "
+                                f"URL: {self.url}/schedule"
+                            )
                             return False
             except asyncio.TimeoutError:
-                _LOGGER.error("Timeout updating schedule")
+                _LOGGER.error(f"Timeout updating schedule for room {self.room_id}")
                 return False
             except Exception as e:
-                _LOGGER.error(f"Error updating schedule: {e}")
+                _LOGGER.error(f"Error updating schedule for room {self.room_id}: {e}")
                 return False
