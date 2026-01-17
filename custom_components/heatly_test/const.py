@@ -8,8 +8,12 @@ CONF_API_URL = "api_url"
 CONF_COLD_TOLERANCE = "cold_tolerance"
 CONF_HOT_TOLERANCE = "hot_tolerance"
 DEFAULT_API_URL = "http://localhost:5364"
-DEFAULT_COLD_TOLERANCE = 0.5  # Degrees C below target to turn on heater
-DEFAULT_HOT_TOLERANCE = 0.5  # Degrees C above target to turn off heater
-SCAN_INTERVAL_SECONDS = 60  # Send sensor data every 60 seconds
-SCHEDULE_CACHE_SECONDS = 300  # Cache schedules for 5 minutes
-MIN_SWITCH_INTERVAL_SECONDS = 60  # Minimum time between heater state changes
+
+# Import timing configuration from config module
+from .config import (
+    DEFAULT_COLD_TOLERANCE,
+    DEFAULT_HOT_TOLERANCE,
+    SCAN_INTERVAL_SECONDS,
+    SCHEDULE_CACHE_SECONDS,
+    MIN_SWITCH_INTERVAL_SECONDS
+)
