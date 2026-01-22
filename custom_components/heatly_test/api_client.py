@@ -8,10 +8,11 @@ from .const import SCHEDULE_CACHE_SECONDS
 _LOGGER = logging.getLogger(__name__)
 
 class HeatlyApiClient:
-    def __init__(self, room_id: str, api_url: str):
+    def __init__(self, room_id: str, api_url: str, api_key: str = None):
         self.room_id = room_id
         self.base_url = api_url.rstrip('/')
         self.url = f"{self.base_url}/api/room/{room_id}"
+        self.api_key = api_key
         self._available_schedules = None
         self._last_schedule_fetch = 0
 
@@ -27,9 +28,20 @@ class HeatlyApiClient:
                     if outdoor_temp is not None:
                         payload["outdoor_temp"] = outdoor_temp
                     
-                    async with session.post(f"{self.url}/sensor", json=payload) as resp:
+                    # Prepare headers with API key if available
+                    headers = {'Content-Type': 'application/json'}
+                    if self.api_key:
+                        headers['X-Heatly-User-API-Key'] = self.api_key
+                    
+                    async with session.post(f"{self.url}/sensor", json=payload, headers=headers) as resp:
                         if resp.status == 200:
                             return await resp.json()
+                        elif resp.status == 401 or resp.status == 403:
+                            _LOGGER.error(
+                                f"Authentication failed for room '{self.room_id}'. "
+                                f"Please check your API key. Status: {resp.status}"
+                            )
+                            return None
                         elif resp.status == 404:
                             _LOGGER.error(
                                 f"Room '{self.room_id}' not found in API. "

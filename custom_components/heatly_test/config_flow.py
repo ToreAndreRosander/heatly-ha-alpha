@@ -3,7 +3,7 @@ from homeassistant import config_entries
 from homeassistant.core import callback
 from .const import (
     DOMAIN, CONF_ROOM_ID, CONF_TEMP_SENSOR, CONF_HEATER_SWITCH, 
-    CONF_HEATER_SWITCHES, CONF_OUTDOOR_SENSOR, CONF_API_URL, 
+    CONF_HEATER_SWITCHES, CONF_OUTDOOR_SENSOR, CONF_API_URL, CONF_API_KEY,
     CONF_COLD_TOLERANCE, CONF_HOT_TOLERANCE,
     DEFAULT_API_URL, DEFAULT_COLD_TOLERANCE, DEFAULT_HOT_TOLERANCE
 )
@@ -32,6 +32,7 @@ class HeatlyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         data_schema = vol.Schema({
             vol.Required(CONF_ROOM_ID): str,
+            vol.Required(CONF_API_KEY): str,
             vol.Required(CONF_TEMP_SENSOR): selector.EntitySelector(
                 selector.EntitySelectorConfig(domain="sensor", device_class="temperature")
             ),

@@ -4,7 +4,7 @@ from datetime import timedelta
 from .api_client import HeatlyApiClient
 from .const import (
     DOMAIN, CONF_ROOM_ID, CONF_TEMP_SENSOR, CONF_HEATER_SWITCH, CONF_HEATER_SWITCHES,
-    CONF_OUTDOOR_SENSOR, CONF_API_URL, DEFAULT_API_URL, SCAN_INTERVAL_SECONDS
+    CONF_OUTDOOR_SENSOR, CONF_API_URL, CONF_API_KEY, DEFAULT_API_URL, SCAN_INTERVAL_SECONDS
 )
 import logging
 
@@ -20,8 +20,9 @@ async def async_setup_entry(hass: HomeAssistant, entry):
     sensor_id = entry.data[CONF_TEMP_SENSOR]
     outdoor_sensor_id = entry.data.get(CONF_OUTDOOR_SENSOR)
     api_url = entry.data.get(CONF_API_URL, DEFAULT_API_URL)
+    api_key = entry.data.get(CONF_API_KEY)
     
-    api_client = HeatlyApiClient(room_id, api_url)
+    api_client = HeatlyApiClient(room_id, api_url, api_key)
     
     # 1. Opprett lagringsplass i HA
     hass.data.setdefault(DOMAIN, {})
